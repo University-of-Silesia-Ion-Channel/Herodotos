@@ -66,95 +66,116 @@ class Herodotos:
         self.dwell_times = np.array(data['dwell times'])
         self.breaks = np.cumsum(self.dwell_times)
         self.T = np.arange(len(self.current))
-        
-    def naive(self) -> np.float64:
-        """
-        Metoda naiwna do analizy histogramu i wyznaczenia punktu podziału stanów otwartego i zamkniętego kanału jonowego.
+        self.threshold = None
+        self.counts, self.bin_edges = np.histogram(self.current, bins=50)
+        self.bin_centers = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
 
-        Parametry
-        ---------
-        current : np.array
-            Wartości prądu jonowego
-        dwell_times : np.array
-            Czasy przebywania w poszczególnych stanach
-            
-        Wynik
-        ------
-            threshold : np.float64
-            
+        
+    def naive(self):
         """
+        Metoda naiwna do detekcji stanów kanału jonowego.
+        """
+        peaks, _ = signal.find_peaks(self.counts, distance=5)
+        print(peaks)
+        if len(peaks) != 2:
+            raise ValueError("Sygnał nie ma dwóch maksimów")
+        else:
+            two_highest_peaks = np.sort(peaks)[-2:]
+            peak1, peak2 = np.sort(two_highest_peaks)
+
+            inverted_counts = -self.counts
+            valleys, _ = signal.find_peaks(inverted_counts, distance=2)
+
+            possible_valleys = [v for v in valleys if peak1 < v < peak2]
+
+            if not possible_valleys:
+                raise ValueError("Nie znaleziono dolin")
+            else:
+                valley = min(possible_valleys, key=lambda x: self.counts[x])
+                self.threshold = self.bin_centers[valley]
+                print(f"Znaleziony threshold: {self.threshold}")
+
+
         
-        threshold = np.mean(self.current)
-        # how to create the beans
-        
-        # threshold = bins[mean[len(mean)/2]][0]
-        
-        return threshold
     
+    def derevative(self)-> np.float64:
+        """
+        Metoda do detekcji stanów kanału jonowego na podstawie pochodnej sygnału.
+        
+        Zwraca
+        ------
+        result : np.float64
+            Wartość prądu, która dzieli stany kanału jonowego na dwie grupy
+        """
+        derivative = np.gradient(self.current)
+        mean_derivative = np.mean(derivative)
+
+        return mean_derivative
+    
+
     def mdl(self):
         pass
 
     def deep_learning(self):
         pass
 
-    def plot(self, result=None, method='naive'):
+    def plot(self):
         """
-        Wizualizacja wyników analizy.
-        
+        Metoda do rysowania histogramu z kanałów jonowych.
+
         Parametry
         ---------
-        result : dict, optional
-            Wynik jednej z metod analizy (naive, mdl lub deep_learning)
-        method : str, optional
-            Nazwa metody użytej do analizy ('naive', 'mdl' lub 'deep_learning')
+        result : np.float64
+            Wynik analizy
+        method : str
+            Metoda analizy
+
+        Zwraca
+        ------
+            None
+
+        Przykład
+        -------
+            herodotos.plot(result, method='naive')
         """
-        if result is None:
-            if method == 'naive':
-                result = self.naive()
-            elif method == 'mdl':
-                result = self.mdl()
-            else:
-                result = self.deep_learning()
-        
-        plt.figure(figsize=(12, 8))
-        
-        # Wykres oryginalnego sygnału
-        plt.subplot(211)
-        plt.plot(self.T, self.current, 'k-', alpha=0.5, label='Sygnał oryginalny')
-        
-        # Wykres wykrytych stanów
-        for state in np.unique(result['assignments']):
-            mask = result['assignments'] == state
-            plt.plot(self.T[mask], self.current[mask], '.', label=f'Stan {state}')
-        
-        plt.xlabel('Czas')
-        plt.ylabel('Prąd')
-        plt.legend()
-        plt.title(f'Analiza metodą: {method}')
-        
-        # Histogram wartości prądu
-        plt.subplot(212)
-        plt.hist(self.current, bins=50, alpha=0.5, color='gray')
-        
-        for state in result['states']:
-            plt.axvline(state, color='r', linestyle='--')
-        
+
+        plt.figure(figsize=(8, 4))
+        plt.bar(self.bin_edges[:-1], self.counts, width=np.diff(self.bin_edges), alpha=0.7, color='lightblue')
+        if self.threshold is not None:
+            plt.axvline(self.threshold, color='red', linestyle='--', label=f'Threshold = {self.threshold:.2f}')
         plt.xlabel('Prąd')
         plt.ylabel('Liczba wystąpień')
-        plt.title('Histogram wartości prądu')
-        
-        plt.tight_layout()
+        plt.title('Histogram z naniesionym progiem rozdziału')
+        plt.legend()
         plt.show()
 
 
+
+
+
+
 # Wczytanie danych
-with open('data/simulation_p20_D100.0.p', 'rb') as f:
+with open('data/simulation_m20_D0.001.p', 'rb') as f:
     data = pickle.load(f)
 
 # Utworzenie obiektu klasy Herodotos
 herodotos = Herodotos(data)
 
-# Analiza metodą naiwną
-result = herodotos.naive()
-herodotos.plot(result, method='naive')
+# # Analiza metodą naiwną
+# result = herodotos.naive()
+# herodotos.plot(result, method='naive')
 
+herodotos.naive()
+
+
+# Zamienić na:
+# herodotos = Herodotos(data)
+# 
+# herodotos.naive()
+# herodotos.plot()
+# 
+# herodotos.mdl()
+# herodotos.plot()
+# 
+# herodotos.deep_learning()
+# herodotos.plot()
