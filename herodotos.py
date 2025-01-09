@@ -3,8 +3,9 @@
 import numpy as np
 from numba import njit
 import pickle
-import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+from scipy.ndimage import gaussian_filter1d
 from scipy import signal
 from sklearn.cluster import KMeans
 
@@ -69,14 +70,14 @@ class Herodotos:
         self.threshold = None
         self.counts, self.bin_edges = np.histogram(self.current, bins=50)
         self.bin_centers = 0.5 * (self.bin_edges[:-1] + self.bin_edges[1:])
+        self.counts_smooth = gaussian_filter1d(self.counts, sigma=3)
 
         
     def naive(self):
         """
         Metoda naiwna do detekcji stanów kanału jonowego.
         """
-        peaks, _ = signal.find_peaks(self.counts, distance=5)
-        print(peaks)
+        peaks, _ = signal.find_peaks(self.counts, distance=5) # bardzo dziwaczne zachowanie. powiązane z bins?
         if len(peaks) != 2:
             raise ValueError("Sygnał nie ma dwóch maksimów")
         else:
@@ -122,32 +123,94 @@ class Herodotos:
     def plot(self):
         """
         Metoda do rysowania histogramu z kanałów jonowych.
-
-        Parametry
-        ---------
-        result : np.float64
-            Wynik analizy
-        method : str
-            Metoda analizy
-
-        Zwraca
-        ------
-            None
-
-        Przykład
-        -------
-            herodotos.plot(result, method='naive')
         """
 
-        plt.figure(figsize=(8, 4))
-        plt.bar(self.bin_edges[:-1], self.counts, width=np.diff(self.bin_edges), alpha=0.7, color='lightblue')
+       
+        fig = make_subplots(
+        rows=1, cols=2,
+        subplot_titles=["Histogram", "Pochodna histogramu"],
+        horizontal_spacing=0.1
+        )
+
+        fig.add_trace(
+        go.Bar(
+            x=self.bin_centers,
+            y=self.counts,
+            name="Histogram (surowy)",
+            marker_color="rgba(0, 0, 200, 0.3)"
+        ),
+        row=1, col=1
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=self.bin_centers,
+                y=self.counts_smooth,
+                mode="lines",
+                name="Histogram wygładzony",
+                line=dict(color="red")
+            ),
+            row=1, col=1
+        )
+
+
         if self.threshold is not None:
-            plt.axvline(self.threshold, color='red', linestyle='--', label=f'Threshold = {self.threshold:.2f}')
-        plt.xlabel('Prąd')
-        plt.ylabel('Liczba wystąpień')
-        plt.title('Histogram z naniesionym progiem rozdziału')
-        plt.legend()
-        plt.show()
+            fig.add_shape(
+                type="line",
+                x0=self.threshold,
+                x1=self.threshold,
+                y0=0,
+                y1=max(self.counts)*1.05,
+                line=dict(color="green", dash="dash"),
+                row=1, col=1
+            )
+
+            fig.add_annotation(
+                x=self.threshold,
+                y=max(self.counts)*1.08, # zwiększenie odległości od osi 0Y
+                text=f"Threshold={self.threshold:.2f}",
+                showarrow=False,
+                font=dict(color="green"),
+                row=1, col=1
+            )
+
+            fig.add_shape(
+                type="line",
+                x0=min(self.bin_centers),
+                x1=max(self.bin_centers),
+                y0=0,
+                y1=0,
+                line=dict(color="gray", dash="dot"),
+                row=1, col=2
+            )
+
+
+        fig.update_layout(
+            width=1400,
+            height=700,
+            title_text="Analiza histogramu kanałów jonowych",
+            showlegend=True
+        )
+
+
+        fig.show()
+
+
+        # below_mask = (self.current <= self.threshold)
+        # above_mask = (self.current >= self.threshold)
+
+        # plt.figure(figsize=(10, 4))
+        # plt.plot(self.T[below_mask], self.current[below_mask], '.', color='blue', label='Stan 1 (poniżej threshold)')
+        # plt.plot(self.T[above_mask], self.current[above_mask], '.', color='orange', label='Stan 2 (powyżej threshold)')
+
+        # plt.axhline(self.threshold, color='red', linestyle='--', label=f'Threshold = {self.threshold:.2f}')
+        # plt.xlabel('Czas')
+        # plt.ylabel('Prąd')
+        # plt.title('Kanał jonowy – dwa stany na jednym wykresie')
+        # plt.legend()
+        # plt.tight_layout()
+        # plt.show()
+
 
 
 
@@ -166,6 +229,7 @@ herodotos = Herodotos(data)
 # herodotos.plot(result, method='naive')
 
 herodotos.naive()
+herodotos.plot()
 
 
 # Zamienić na:
