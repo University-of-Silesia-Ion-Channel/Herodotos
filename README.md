@@ -5,7 +5,7 @@ Herodotos is a Python tool designed to analyze ion channel data and generate his
 > [!NOTE]
 > This code is free to use for any and all cases. If you want to support this work feel free to join in and make a PR.
 
-## The premise
+### The premise
 >*...and gods said in unison as if shanting the most sacred hymn: "Let there be a way of showing where the hell is is the border of open and closed Ion Channels.", and the world listened.*
 
 ---
@@ -16,10 +16,7 @@ Herodotos is a Python tool designed to analyze ion channel data and generate his
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Project Structure](#project-structure)
-- [Contributing](#contributing)
 - [License](#license)
-- [Authors](#authors)
 - [Acknowledgements](#acknowledgements)
 
 ---
@@ -28,9 +25,6 @@ Herodotos is a Python tool designed to analyze ion channel data and generate his
 
 Ion channels play a critical role in cellular signaling and function. Determining the threshold between their open and closed states is essential for understanding their behavior and kinetics. Herodotos processes experimental data (e.g., voltage or current traces) to produce histograms that highlight the distribution of channel states, enabling researchers to pinpoint these thresholds more effectively.
 
-> _"...and gods said in unison as if chanting the most sacred hymn: 'Let there be a way of showing where the border of open and closed Ion Channels is,' and the world listened."_  
->  
-> This whimsical premise underlines our scientific goal: to provide a clear, visual means of differentiating between ion channel states.
 
 ---
 
